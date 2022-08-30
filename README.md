@@ -29,8 +29,10 @@ Overall, there are some cons to this approach. Nothing is pre-computed, every si
 Memory storage isn't the greatest either, since we need to store within an MxN matrix.
 
 ### Flowchart
+![Flowchart](docs/flowchart.jpg)
 
 ### Requirements
 * Python 3.10.5
 * You can skip all steps below using `pip3 install -r requirements.txt`
 * Refer to `requirements.txt` for required Python libraries
+* ![Execution/Usage screenshot](/docs/run_example.jpg)

@@ -1,39 +1,45 @@
 import random
+import pandas as pd
+import numpy as np
+from pprint import pprint
 
 
 class UserAudience:
     def __init__(self):
-        self.data = dict()  # segmentX --> set(userA, userB, ..)
+        self.data = None
 
-    # Generates the data structure with dimensions: num_users x num_segments
-    def generate_data(self, num_users, num_segments):
-        for i in range(num_segments):
-            segment_id = f"segment{i}"
-            random_user_set = set()
-            for j in range(num_users):
-                user_id = f"user{j}"
-                # Randomly choose if user is in this segment (coin-flip)
-                is_user_in_segment = random.choice([True, False])
-                if is_user_in_segment:
-                    random_user_set.add(user_id)
-            self.data[segment_id] = random_user_set
+    # Generates the dataframe with dimensions: num_users x num_segments
+    def generate_data(self, num_users, num_segments, ):
+        segments = [f"segment{i}" for i in range(1, num_segments + 1)]
+        users = [f"user{i}" for i in range(1, num_users + 1)]
+        self.data = pd.DataFrame(data=np.random.randint(0, 2, size=(num_users, num_segments), dtype=bool),
+                                 columns=segments, dtype=bool)
+        self.data.insert(0, 'User ID', users)
+
+    def set_default_data(self):
+        segments = ["segment1", "segment2", "segment3", "segment4"]
+        users = ["user1", "user2", "user3", "user4", "user5"]
+        default_data = [[1, 1, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 1, 1, 0],
+                        [1, 1, 0, 1],
+                        [0, 0, 0, 0]]
+        self.data = pd.DataFrame(data=default_data, columns=segments, dtype=bool)
+        self.data.insert(0, 'User ID', users)
 
     # Gets the number of users that exist in the given segment
     def get_num_users(self, segment):
-        return len(self.data[segment])
+        return self.data[segment].sum()
 
     # Gets the number of users that exist in the given criteria
     def get_num_users_custom(self, segments, op):
-        matches = self.data[segments[0].strip()]
-
-        for segment in segments:
-            segment = segment.strip()
-            if "and" in op.lower():
-                matches = matches.intersection(self.data[segment])  # users must exist in all segments
-            elif "or" in op.lower():
-                matches = matches.union(self.data[segment])  # users only have to exist in one segment
-
-        return len(matches)
+        segments = [segment.strip() for segment in segments]  # trim whitespace from segments
+        res = pd.DataFrame()
+        if op == "AND":
+            res = self.data.loc[self.data[segments].all(1)]
+        elif op == "OR":
+            res = self.data.loc[self.data[segments].any(1)]
+        return len(res)
 
     # Returns a boolean indicating if the user query is valid
     def is_query_valid(self, query):
@@ -43,18 +49,19 @@ class UserAudience:
             return True
         if len(split_query) == 1 and "segment" in split_query[0].lower():
             segment_id = split_query[0].split('segment')[1]
-            if not segment_id.isnumeric() or int(segment_id) >= len(self.data):
+            if not segment_id.isnumeric() or int(segment_id) >= len(self.data.columns):
                 return False
         # Conditional query
         elif len(split_query) > 1 and ("AND" in split_query[0] or "OR" in split_query[0]):
             segments = split_query[1:]
-            if len(segments) > 5:
+            if len(segments) >= 5:
                 print("Too many segments! There is a max of 4")
                 return False
             for segment in segments:
+                segment = segment.strip()
                 if "segment" in segment.lower():
                     segment_id = segment.lower().split('segment')[1]
-                    if not segment_id.isnumeric() or int(segment_id) >= len(self.data):
+                    if not segment_id.isnumeric() or int(segment_id) >= len(self.data.columns):
                         return False
         else:
             return False
@@ -90,3 +97,7 @@ class UserAudience:
         print(
             f"To find the number of users in at least one segment in a given combination of segments, input: OR, segmentA, segmentB, ..")
         print(f"Here's an example: {ex3}\n")
+
+    def write_table(self):
+        compression_opts = dict(method='zip', archive_name='data.csv')
+        self.data.to_csv('data.zip', index=False, compression=compression_opts, chunksize=10000)
